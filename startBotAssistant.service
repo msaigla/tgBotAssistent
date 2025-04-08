@@ -1,0 +1,12 @@
+[Unit]
+Description=Assistant massage
+After-multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/var/www/html/tgBotAssistant/.venv/bin/python /var/www/html/tgBotAssistant/run.py
+WorkingDirectory=/var/www/html/tgBotAssistant
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

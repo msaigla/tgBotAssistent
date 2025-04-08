@@ -24,6 +24,4 @@ gen
 
 __pycache__
 
-bot/.env
-
-bot/GoogleSheetApi.json
+GoogleSheetApi.json
