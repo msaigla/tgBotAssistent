@@ -17,15 +17,13 @@ from bot.handlers.day7 import router as router_day7
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from bot.db.requests import redis
-
 
 async def bot_start(logger: logging.Logger) -> None:
     logging.basicConfig(level=logging.INFO)
 
     bot = Bot(token=os.getenv('TG_TOKEN'))
 
-    dp = Dispatcher(storage=RedisStorage(redis=redis))
+    dp = Dispatcher()
     dp.include_router(router_main)
     dp.include_router(router_day7)
 
@@ -55,7 +53,6 @@ async def bot_start(logger: logging.Logger) -> None:
     await dp.start_polling(bot,
                            session_maker=session_maker,
                            logger=logger,
-                           redis=redis,
                            allowed_updates=dp.resolve_used_update_types())
 
 

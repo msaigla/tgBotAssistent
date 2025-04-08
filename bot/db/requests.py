@@ -1,18 +1,8 @@
-import os
-from typing import List, Dict, Any
-
-from redis import asyncio as aioredis
 from sqlalchemy import select
 from sqlalchemy.exc import ProgrammingError, NoResultFound
 from sqlalchemy.orm import sessionmaker, selectinload
 
 from bot.db.models import User, ChatHistory
-
-redis = aioredis.Redis(
-    host=os.getenv('REDIS_HOST') or '127.0.0.1',
-    password=os.getenv('REDIS_PASSWORD') or None,
-    username=os.getenv('REDIS_USER') or None,
-)
 
 
 async def get_all_user(session_maker: sessionmaker):
