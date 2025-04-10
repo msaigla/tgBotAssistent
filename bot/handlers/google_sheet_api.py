@@ -43,8 +43,11 @@ async def add_new_user(values: list):
 
 
 async def delete_user_from_sheet(chat_id):
-    cell = sheet.find(str(chat_id), in_column=1)
-    sheet.delete_rows(int(cell.row), int(cell.row))
+    try:
+        cell = sheet.find(str(chat_id), in_column=1)
+        sheet.delete_rows(int(cell.row), int(cell.row))
+    except:
+        pass
 
 
 async def new_many_clients_user(chat_id, clients: str):
