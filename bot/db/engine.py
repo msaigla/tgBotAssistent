@@ -6,7 +6,7 @@ from sqlalchemy.orm import sessionmaker
 
 
 def create_async_engine(url: Union[URL, str]) -> AsyncEngine:
-    return _create_async_engine(url=url, echo=True, pool_use_lifo=True)
+    return _create_async_engine(url=url, echo=False, pool_use_lifo=True)
 
 
 @DeprecationWarning
@@ -17,4 +17,4 @@ async def proceed_schemas(engine: AsyncEngine, metadata) -> None:
 
 
 def get_session_maker(engine: AsyncEngine) -> sessionmaker:
-    return sessionmaker(engine, class_=AsyncSession)
+    return sessionmaker(bind=engine, class_=AsyncSession)

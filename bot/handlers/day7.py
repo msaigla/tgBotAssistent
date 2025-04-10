@@ -1,4 +1,5 @@
 from aiogram import Router, types, F
+from aiogram.enums import ParseMode
 
 from sqlalchemy.orm import sessionmaker
 
@@ -19,18 +20,19 @@ async def many_clients_user(call: types.CallbackQuery, session_maker: sessionmak
     await new_many_clients_user(call.message.chat.id, await _(many_clients, call.message.chat.id, session_maker))
 
 
-@router.callback_query(F.data.startswith("fell_"))
+@router.callback_query(F.data.startswith("feel_"))
 async def fell_user(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
-    fell = call.data[5:]
+    feel = call.data[5:]
     await call.message.edit_text(
         await _("MSG_QUESTION_FEEL", call.message.chat.id, session_maker) + "\n" +
-        await _(fell, call.message.chat.id, session_maker)
+        await _(feel, call.message.chat.id, session_maker)
     )
     await call.message.answer(
         await gpt4(
-            "Я себя чувствую " + await _(fell, call.message.chat.id, session_maker),
+            "Я себя чувствую " + await _(feel, call.message.chat.id, session_maker),
             call.message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )
-    await new_fell_user(call.message.chat.id, await _(fell, call.message.chat.id, session_maker))
+    await new_fell_user(call.message.chat.id, await _(feel, call.message.chat.id, session_maker))

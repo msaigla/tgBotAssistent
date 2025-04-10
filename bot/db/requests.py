@@ -1,4 +1,4 @@
-from sqlalchemy import select
+from sqlalchemy import select, delete
 from sqlalchemy.exc import ProgrammingError, NoResultFound
 from sqlalchemy.orm import sessionmaker, selectinload
 
@@ -35,15 +35,24 @@ async def get_all_user(session_maker: sessionmaker):
 
 async def get_user(chat_id, session_maker: sessionmaker):
     async with session_maker() as session:
+        result = await session.execute(
+            select(User).filter(User.chat_id == chat_id)  # type: ignore
+        )
+        try:
+            res = result.one_or_none()
+            print(res)
+            return res
+        except:
+            return None
+
+
+async def delete_user(chat_id, session_maker: sessionmaker):
+    async with session_maker() as session:
         async with session.begin():
-            result = await session.execute(
-                select(User)
-                .filter(User.chat_id == chat_id)  # type: ignore
-            )
-            try:
-                return result.scalars().one()
-            except:
-                return None
+            query = delete(User).where(User.chat_id == chat_id)
+            await session.execute(query)
+            query = delete(ChatHistory).where(ChatHistory.chat_id == chat_id)
+            await session.execute(query)
 
 
 async def create_user(user: list, row: str, session_maker: sessionmaker) -> None:

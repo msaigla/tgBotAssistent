@@ -42,6 +42,11 @@ async def add_new_user(values: list):
     return sheet.append_row(values)['updates']['updatedRange'].split(':')[0].replace("'Клиенты'!", '')
 
 
+async def delete_user_from_sheet(chat_id):
+    cell = sheet.find(str(chat_id), in_column=1)
+    sheet.delete_rows(int(cell.row), int(cell.row))
+
+
 async def new_many_clients_user(chat_id, clients: str):
     cell = sheet.find(str(chat_id), in_column=1)
     sheet.update_cell(int(cell.row), 6, clients)

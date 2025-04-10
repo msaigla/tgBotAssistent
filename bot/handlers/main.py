@@ -2,34 +2,64 @@ import os
 
 from datetime import datetime
 
-from aiogram import Router, types, F
-from aiogram.filters import CommandStart
+from aiogram import Router, types, F, Bot
+from aiogram.enums import ParseMode
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from sqlalchemy.orm import sessionmaker
 
-from bot.db.requests import create_user, get_user
+from bot.db.requests import create_user, get_user, update_day, delete_user
 from bot.handlers.chat_GPT import gpt4
 from bot.structures.fsm_groups import CreateUserFSM
 from bot.translations import _
 
-from bot.handlers.google_sheet_api import add_new_user, new_many_clients_user
+from bot.handlers.google_sheet_api import add_new_user, new_many_clients_user, delete_user_from_sheet
 
 router = Router()
 
 
+@router.message(Command('clear_user'))
+async def cmd_main(message: types.Message, session_maker: sessionmaker, bot: Bot):
+    msg = await message.answer(
+        "очистка..."
+    )
+    await delete_user(message.chat.id, session_maker)
+    await delete_user_from_sheet(message.chat.id)
+    try:
+        # Все сообщения, начиная с текущего и до первого (message_id = 0)
+        for i in range(message.message_id, 0, -1):
+            await bot.delete_message(
+                chat_id=message.chat.id, message_id=i)
+    except TelegramBadRequest as ex:
+        # Если сообщение не найдено (уже удалено или не существует),
+        # код ошибки будет "Bad Request: message to delete not found"
+        if ex.message == "Bad Request: message to delete not found":
+            print("Все сообщения удалены")
+    # await message.answer(
+    #     "очистка завершена! Для начала введите команду /start"
+    # )
+    await msg.delete()
+
+
 @router.message(CommandStart())
 async def cmd_start(message: types.Message, session_maker: sessionmaker, state: FSMContext) -> None:
-    # result = await get_user(message.chat.id, session_maker)
-    # print(result)
-    await message.answer(
-        await _("START_MESSAGE", message.chat.id, session_maker)
-    )
-    await message.answer(
-        await _("MSG_QUESTION_NAME", message.chat.id, session_maker)
-    )
-    await state.set_state(CreateUserFSM.name)
+    user = await get_user(message.chat.id, session_maker)
+    if user is None:
+        await message.answer(
+            await _("START_MESSAGE", message.chat.id, session_maker)
+        )
+        await message.answer(
+            await _("MSG_QUESTION_NAME", message.chat.id, session_maker)
+        )
+        await state.set_state(CreateUserFSM.name)
+    else:
+        await message.answer(
+            "Вы уже зарегистрированы!"
+        )
+        await state.set_state(CreateUserFSM.finish)
 
 
 @router.message(CreateUserFSM.name)
@@ -255,7 +285,8 @@ async def using_social_user(call: types.CallbackQuery, state: FSMContext, sessio
             ),
             call.message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -271,7 +302,8 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
             await _(DID, call.message.chat.id, session_maker),
             call.message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -287,7 +319,8 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
             await _(hint, call.message.chat.id, session_maker),
             call.message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -328,7 +361,8 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
             await _(hint, call.message.chat.id, session_maker),
             call.message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )
 
 
@@ -339,5 +373,6 @@ async def message_gpt(message: types.Message, state: FSMContext, session_maker: 
             message.text,
             message.chat.id,
             session_maker
-        )
+        ),
+        parse_mode=ParseMode.MARKDOWN,
     )

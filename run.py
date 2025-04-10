@@ -7,11 +7,13 @@ from datetime import datetime
 
 from aiogram import Dispatcher, Bot
 from aiogram.fsm.storage.redis import RedisStorage
+from aiogram.types import BotCommand
 from sqlalchemy.engine import URL
 
 from bot.db.engine import create_async_engine, get_session_maker
 
 from bot.handlers import apsched
+from bot.handlers.bot_commands import bot_commands
 from bot.handlers.main import router as router_main
 from bot.handlers.day7 import router as router_day7
 
@@ -20,6 +22,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 async def bot_start(logger: logging.Logger) -> None:
     logging.basicConfig(level=logging.INFO)
+
+    commands_for_bot = []
+    for cmd in bot_commands:
+        commands_for_bot.append(BotCommand(command=cmd[0], description=cmd[1]))
 
     bot = Bot(token=os.getenv('TG_TOKEN'))
 
