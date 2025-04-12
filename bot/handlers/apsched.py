@@ -10,7 +10,7 @@ async def send_message_cron(bot: Bot, session_maker: sessionmaker):
     results = await get_all_user(session_maker=session_maker)
     print(results)
     for result in results:
-        if result['number_of_days'] == 0:
+        if result['number_of_days'] == 7:
             many_clients_markup = InlineKeyboardBuilder()
             many_clients_markup.row(
                 types.InlineKeyboardButton(
