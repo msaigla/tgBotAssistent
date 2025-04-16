@@ -376,3 +376,4 @@ async def message_gpt(message: types.Message, state: FSMContext, session_maker: 
         ),
         parse_mode=ParseMode.MARKDOWN,
     )
+    await state.set_state(CreateUserFSM.finish)
