@@ -22,7 +22,7 @@ router = Router()
 
 
 @router.message(Command('clear_user'))
-async def cmd_main(message: types.Message, session_maker: sessionmaker, bot: Bot):
+async def cmd_clear(message: types.Message, session_maker: sessionmaker, bot: Bot):
     msg = await message.answer(
         "очистка..."
     )
@@ -377,3 +377,23 @@ async def message_gpt(message: types.Message, state: FSMContext, session_maker: 
         parse_mode=ParseMode.MARKDOWN,
     )
     await state.set_state(CreateUserFSM.finish)
+
+
+@router.message(F.text)
+async def message_gpt(message: types.Message, state: FSMContext, session_maker: sessionmaker) -> None:
+    user = await get_user(message.chat.id, session_maker)
+    print('this')
+    if user is not None:
+        await message.answer(
+            await gpt4(
+                message.text,
+                message.chat.id,
+                session_maker
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+        )
+        await state.set_state(CreateUserFSM.finish)
+    else:
+        await message.answer(
+            "Выполните команду /start"
+        )
