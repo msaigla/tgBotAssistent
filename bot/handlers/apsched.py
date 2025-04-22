@@ -12,7 +12,7 @@ async def send_message_cron(bot: Bot, session_maker: sessionmaker):
     for result in results:
         try:
             print(result)
-            if result['number_of_days'] == 7:
+            if result['number_of_days'] >= 7:
                 many_clients_markup = InlineKeyboardBuilder()
                 many_clients_markup.row(
                     types.InlineKeyboardButton(
