@@ -51,7 +51,7 @@ async def bot_start(logger: logging.Logger) -> None:
     scheduler.add_job(apsched.send_message_cron,
                       trigger='cron',
                       hour=int(os.getenv("AUTO_MESSAGE_HOUR")),
-                      minute=datetime.now().minute + 1,
+                      # minute=datetime.now().minute + 1,
                       start_date=datetime.now(),
                       kwargs={'bot': bot, 'session_maker': session_maker})
     scheduler.start()
