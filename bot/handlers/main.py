@@ -297,9 +297,12 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
         await _("MSG_QUESTION_HINT", call.message.chat.id, session_maker) + "\n" +
         await _(DID, call.message.chat.id, session_maker)
     )
+    msg = ""
+    if DID == "Сделала" or "Сделал":
+        msg = " Дай новое задание"
     await call.message.answer(
         await gpt4(
-            await _(DID, call.message.chat.id, session_maker),
+            ((await _(DID, call.message.chat.id, session_maker)) + msg),
             call.message.chat.id,
             session_maker
         ),
