@@ -51,6 +51,7 @@ class ChatHistory(BaseModel):
     chat_id = mapped_column(BigInteger)
     role: Mapped[str] = mapped_column(String(32), unique=False, nullable=True)
     message: Mapped[str]
+    create_at: Mapped[created_at]
 
     @property
     def stats(self) -> str:
