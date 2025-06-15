@@ -1,9 +1,4 @@
-import os
-
-from datetime import datetime
-
 from aiogram import Router, types, F, Bot
-from aiogram.enums import ParseMode
 from aiogram.exceptions import TelegramBadRequest
 from aiogram.filters import CommandStart, Command
 from aiogram.fsm.context import FSMContext
@@ -11,12 +6,13 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from sqlalchemy.orm import sessionmaker
 
-from bot.db.requests import create_user, get_user, update_day, delete_user
-from bot.handlers.chat_GPT import gpt4
+from bot.db.requests import create_user, get_user, delete_user, get_user_perm
+from bot.db.schemas.users import UserAddDB
+from bot.handlers.chat_GPT import write_response_gpt
 from bot.structures.fsm_groups import CreateUserFSM
 from bot.translations import _
 
-from bot.handlers.google_sheet_api import add_new_user, new_many_clients_user, delete_user_from_sheet
+from bot.handlers.google_sheet_api import add_new_user, delete_user_from_sheet
 
 router = Router()
 
@@ -46,6 +42,13 @@ async def cmd_clear(message: types.Message, session_maker: sessionmaker, bot: Bo
 
 @router.message(CommandStart())
 async def cmd_start(message: types.Message, session_maker: sessionmaker, state: FSMContext) -> None:
+    perm = await get_user_perm(message.from_user.username, session_maker)
+    print(perm)
+    if not perm:
+        await message.answer(
+            "У вас нет доступа!"
+        )
+        return
     user = await get_user(message.chat.id, session_maker)
     if user is None:
         await message.answer(
@@ -94,7 +97,10 @@ async def gender_user(call: types.CallbackQuery, state: FSMContext, session_make
         await _("MSG_QUESTION_GENDER", call.message.chat.id, session_maker) + " " +
         await _(gender, call.message.chat.id, session_maker)
     )
-    # await call.message.delete_reply_markup()
+    data = await state.get_data()
+    await call.message.answer(
+        (await _("GREETING", call.message.chat.id, session_maker)).format(data["name"])
+    )
     await call.message.answer(
         await _("MSG_QUESTION_CITY", call.message.chat.id, session_maker)
     )
@@ -264,29 +270,35 @@ async def using_social_user(call: types.CallbackQuery, state: FSMContext, sessio
         await _("MSG_QUESTION_SNW", call.message.chat.id, session_maker) + "\n" +
         await _(using_social, call.message.chat.id, session_maker),
     )
-    row = await add_new_user(results)
-    await create_user(results, row, session_maker)
     await call.message.answer(
-        await gpt4(
-            ("Меня зовут {}. " +
-             "Мой гендер {}. " +
-             "Живу я в {}. " +
-             "Я практикую массаж {}. " +
-             "Клиентов у меня {}. " +
-             "Я использую технику на {}" +
-             "Мой уровень владения соцсетями - {}").format(
-                data.get("name"),
-                await _(data.get("gender"), call.message.chat.id, session_maker),
-                data.get("city"),
-                await _(data.get("where_practicing"), call.message.chat.id, session_maker),
-                await _(data.get("were_clients"), call.message.chat.id, session_maker),
-                await _(data.get("massage_technique"), call.message.chat.id, session_maker),
-                await _(data.get("using_social"), call.message.chat.id, session_maker)
-            ),
-            call.message.chat.id,
-            session_maker
-        ),
-        parse_mode=ParseMode.MARKDOWN,
+        (await _("MSG_STRATEGY", call.message.chat.id, session_maker)).format(data.get("name"))
+    )
+    row = await add_new_user(results)
+    new_user: UserAddDB = UserAddDB(
+        chat_id=results[0],
+        username=results[1],
+        gender=results[2],
+        city=results[3],
+        where_practicing=results[4],
+        were_clients=results[5],
+        massage_technique=results[6],
+        using_social=results[7],
+        row_sheet=row
+    )
+    await create_user(new_user, session_maker)
+    user_data = {
+        "имя": new_user.username,
+        "пол": new_user.gender,
+        "город": new_user.city,
+        "формат приёма": new_user.where_practicing,
+        "техника": new_user.massage_technique,
+        "цифровые навыки": new_user.using_social,
+        "соцсети": new_user.using_social
+    }
+    await write_response_gpt(
+        call.message,
+        (await _("FIRST_MESSAGE_TO_GPT", call.message.chat.id, session_maker)).format(user_data),
+        session_maker
     )
 
 
@@ -300,13 +312,10 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
     msg = ""
     if DID == "DID_WOMEN" or "DID_MAN":
         msg = " Дай новое задание"
-    await call.message.answer(
-        await gpt4(
-            ((await _(DID, call.message.chat.id, session_maker)) + msg),
-            call.message.chat.id,
-            session_maker
-        ),
-        parse_mode=ParseMode.MARKDOWN,
+    await write_response_gpt(
+        call.message,
+        ((await _(DID, call.message.chat.id, session_maker)) + msg),
+        session_maker
     )
 
 
@@ -317,13 +326,10 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
         await _("MSG_QUESTION_HINT", call.message.chat.id, session_maker) + "\n" +
         await _(hint, call.message.chat.id, session_maker)
     )
-    await call.message.answer(
-        await gpt4(
-            await _(hint, call.message.chat.id, session_maker),
-            call.message.chat.id,
-            session_maker
-        ),
-        parse_mode=ParseMode.MARKDOWN,
+    await write_response_gpt(
+        call.message,
+        await _(hint, call.message.chat.id, session_maker),
+        session_maker
     )
 
 
@@ -359,25 +365,19 @@ async def did(call: types.CallbackQuery, session_maker: sessionmaker) -> None:
     #         callback_data="OTHER"
     #     )
     # )
-    await call.message.answer(
-        await gpt4(
-            await _(hint, call.message.chat.id, session_maker),
-            call.message.chat.id,
-            session_maker
-        ),
-        parse_mode=ParseMode.MARKDOWN,
+    await write_response_gpt(
+        call.message,
+        await _(hint, call.message.chat.id, session_maker),
+        session_maker
     )
 
 
 @router.message(CreateUserFSM.finish)
 async def message_gpt(message: types.Message, state: FSMContext, session_maker: sessionmaker) -> None:
-    await message.answer(
-        await gpt4(
-            message.text,
-            message.chat.id,
-            session_maker
-        ),
-        parse_mode=ParseMode.MARKDOWN,
+    await write_response_gpt(
+        message,
+        message.text,
+        session_maker
     )
     await state.set_state(CreateUserFSM.finish)
 
@@ -387,13 +387,10 @@ async def message_gpt(message: types.Message, state: FSMContext, session_maker: 
     user = await get_user(message.chat.id, session_maker)
     print('this')
     if user is not None:
-        await message.answer(
-            await gpt4(
-                message.text,
-                message.chat.id,
-                session_maker
-            ),
-            parse_mode=ParseMode.MARKDOWN,
+        await write_response_gpt(
+            message,
+            message.text,
+            session_maker
         )
         await state.set_state(CreateUserFSM.finish)
     else:

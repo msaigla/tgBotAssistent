@@ -19,7 +19,6 @@ from bot.handlers.day7 import router as router_day7
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-
 async def bot_start(logger: logging.Logger) -> None:
     logging.basicConfig(level=logging.INFO)
 

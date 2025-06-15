@@ -3,6 +3,11 @@ import gspread
 from dotenv import load_dotenv
 from google.oauth2.service_account import Credentials
 from gspread_formatting import set_column_width
+import os
+import gspread
+from dotenv import load_dotenv
+from google.oauth2.service_account import Credentials
+from gspread_formatting import set_column_width
 
 load_dotenv()
 scopes = [

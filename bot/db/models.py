@@ -1,5 +1,5 @@
 import enum
-from datetime import datetime
+from datetime import datetime, date
 from typing import Annotated
 
 from sqlalchemy import text, BigInteger, MetaData, String
@@ -9,12 +9,15 @@ from bot.db.base import BaseModel
 
 metadata_obj = MetaData()
 
-created_at = Annotated[datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"))]
-updated_at = Annotated[datetime, mapped_column(server_default=text("TIMEZONE('utc', now())"),
+created_at = Annotated[datetime, mapped_column(server_default=text("TIMEZONE('utc+3', now())"))]
+updated_at = Annotated[datetime, mapped_column(server_default=text("TIMEZONE('utc+3', now())"),
                                                onupdate=datetime.utcnow)]
 
+date_at = Annotated[date, mapped_column(server_default=text("TIMEZONE('utc+3', now())"),
+                                               onupdate=date)]
 
-class User(BaseModel):
+
+class UsersOrm(BaseModel):
     __tablename__ = 'users'
 
     chat_id = mapped_column(BigInteger, nullable=False, unique=True, primary_key=True)
@@ -28,6 +31,8 @@ class User(BaseModel):
     lang: Mapped[str] = mapped_column(String(32), unique=False, default='ru')
     row_sheet: Mapped[str] = mapped_column(String(32), unique=False, nullable=True)
     number_of_days: Mapped[int] = mapped_column(unique=False, default=0)
+    trial: Mapped[int] = mapped_column(default=30)
+    premium: Mapped[date_at]
     create_at: Mapped[created_at]
     update_at: Mapped[updated_at]
 
@@ -45,7 +50,7 @@ class User(BaseModel):
         return self.__str__()
 
 
-class ChatHistory(BaseModel):
+class ChatHistoriesOrm(BaseModel):
     __tablename__ = 'chat_histories'
     id = mapped_column(BigInteger, primary_key=True)
     chat_id = mapped_column(BigInteger)
@@ -65,3 +70,9 @@ class ChatHistory(BaseModel):
 
     def __repr__(self):
         return self.__str__()
+
+
+class UsersPermissionOrm(BaseModel):
+    __tablename__ = 'user_permissions'
+    id = mapped_column(BigInteger, primary_key=True)
+    login: Mapped[str] = mapped_column(String(128), unique=False, nullable=True)
